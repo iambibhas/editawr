@@ -306,13 +306,13 @@ sudo apt-get -f install
 
 ## GitHub Actions
 
-`.github/workflows/ci.yml` contains two jobs:
+`.github/workflows/ci.yml` contains three jobs:
 
 1. **Unit tests** — Ubuntu and Windows, on every push to `main`, every PR,
    and every release tag.
-2. **Package** — Windows x64, Linux x64 and macOS, after the unit tests pass.
-   Packaging runs on pushes to `main`, `v*` tags, and manual workflow runs.
-   Pull requests only run the unit tests, so they stay fast.
+2. **Package** — Windows x64, Linux x64, macOS arm64 and macOS x64, after the
+   unit tests pass. Packaging runs on pushes to `main`, `v*` tags, and manual
+   workflow runs. Pull requests only run the unit tests, so they stay fast.
 
 The package job:
 
@@ -338,7 +338,25 @@ if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_disp
 ```
 
 Download the result from the workflow run's **Artifacts** section:
-`editawr-windows-x64`, `editawr-linux-x64`, `editawr-macos`.
+`editawr-windows-x64`, `editawr-linux-x64`, `editawr-macos-arm64` and
+`editawr-macos-x64`.
+
+### GitHub Releases
+
+For a `v*` tag, the `release` job runs after all package jobs, downloads the
+four artifact bundles, and attaches the installers to the GitHub Release for
+that tag. If the release already exists, assets are added to it; if it does not,
+the job creates the release with generated notes.
+
+This does not run for a release created before the job existed, and re-running
+an old workflow run uses the old workflow file. In that case, download the
+artifacts from the workflow run and attach them manually:
+
+```bash
+gh release upload v0.1.0 /path/to/EditAWr-* --clobber
+```
+
+Or use the GitHub UI: **Releases → the release → Edit → Attach binaries**.
 
 ### Adding signing to CI
 
@@ -354,24 +372,35 @@ Then:
 2. Add the secrets as environment variables on the electron-builder step.
 3. Enable `mac.notarize` and hardened runtime for macOS.
 
-Keep signing secrets out of pull-request workflows. The current package job only
-runs on tags/manual dispatches, which is the safer pattern.
+Keep signing secrets out of pull-request workflows. The package and release
+jobs never run on pull requests, which is the safer pattern.
+
+### macOS architectures
+
+The workflow builds both:
+
+- `macos-arm64` on `macos-latest` (Apple Silicon), with `--mac --arm64`
+- `macos-x64` on `macos-26-intel` (Intel), with `--mac --x64`
+
+If the Intel label changes, `macos-15-intel` is the fallback. Do not force
+`--arm64` on an x64 runner: electron-builder will package the arm64 Electron
+binary, but `sharp` will still be the x64 native module installed by `npm ci`.
+Build on the matching architecture, or install the target architecture's
+`@img/sharp-*` package explicitly.
 
 ### Adding another architecture
 
-Add a matrix entry that runs on a runner of that architecture:
+Add a matrix entry that runs on a runner of that architecture. For example,
+for Windows arm64:
 
 ```yaml
-- name: macos-arm64
-  os: macos-latest      # use an Apple Silicon runner for arm64
-  args: --mac --arm64
-  artifacts: dist/*.dmg
+- name: windows-arm64
+  os: windows-11-arm
+  args: --win --arm64
+  artifacts: |
+    dist/*.exe
+    dist/*.blockmap
 ```
-
-Do not force `--arm64` on an x64 macOS runner: electron-builder will package the
-arm64 Electron binary, but `sharp` will still be the x64 native module installed
-by `npm ci`. Build on the matching architecture, or install the target
-architecture's `@img/sharp-*` package explicitly.
 
 ## Verification checklist
 

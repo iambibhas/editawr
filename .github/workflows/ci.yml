@@ -51,11 +51,16 @@ jobs:
             artifacts: |
               dist/*.AppImage
               dist/*.deb
-          - name: macos
-            # Build on the runner's native architecture. Do not force --arm64
-            # on an Intel runner: sharp's native binary must match the host.
+          - name: macos-arm64
+            # Apple Silicon runner; sharp installs the arm64 native binary.
             os: macos-latest
-            args: --mac
+            args: --mac --arm64
+            artifacts: dist/*.dmg
+          - name: macos-x64
+            # Intel runner; sharp installs the x64 native binary.
+            # macOS 15 Intel is also available as macos-15-intel.
+            os: macos-26-intel
+            args: --mac --x64
             artifacts: dist/*.dmg
     env:
       # Unsigned CI builds by default. Configure signing secrets and remove
@@ -81,3 +86,29 @@ jobs:
           path: ${{ matrix.artifacts }}
           if-no-files-found: error
           retention-days: 14
+
+  release:
+    name: Attach packages to release
+    # Only tags create/update a GitHub Release. Create the release first if you
+    # want to write the notes yourself; otherwise this creates one.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: editawr-*
+          merge-multiple: true
+          path: release-assets
+      - name: Attach installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -lh release-assets
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" release-assets/* --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" release-assets/* --title "${GITHUB_REF_NAME}" --generate-notes
+          fi
