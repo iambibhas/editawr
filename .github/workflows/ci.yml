@@ -97,6 +97,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           pattern: editawr-*
@@ -105,6 +108,7 @@ jobs:
       - name: Attach installers
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           ls -lh release-assets
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then

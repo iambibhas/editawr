@@ -120,15 +120,25 @@ Artifacts are written to `dist/`.
 | macOS | `dist/mac*/EditAWr.app` |
 | Linux | `dist/linux-unpacked/editawr` |
 
-### Windows artifact names
+### Artifact names
 
-The two Windows targets intentionally have different names:
+Windows has two targets, so they intentionally have different names:
 
-- `EditAWr-<version>-setup-<arch>.exe` — NSIS installer
-- `EditAWr-<version>-portable-<arch>.exe` — portable executable
+- `EditAWr-<version>-setup-x64.exe` — NSIS installer
+- `EditAWr-<version>-portable-x64.exe` — portable executable
 
-If you change `artifactName`, keep the names distinct. A single name for both
-targets makes one overwrite the other.
+macOS:
+
+- `EditAWr-<version>-arm64.dmg`
+- `EditAWr-<version>-x64.dmg`
+
+Linux uses the Debian/AppImage architecture names for `${arch}`:
+
+- `EditAWr-<version>-x86_64.AppImage`
+- `EditAWr-<version>-amd64.deb`
+
+If you change `artifactName`, keep the Windows names distinct. A single name for
+both Windows targets makes one overwrite the other.
 
 ## Native dependencies
 
