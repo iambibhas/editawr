@@ -20,17 +20,21 @@ win:
   target:
     - nsis
     - portable
-  artifactName: ${productName}-${version}-${arch}.${ext}
 
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   perMachine: false
+  artifactName: ${productName}-${version}-setup-${arch}.${ext}
+
+portable:
+  artifactName: ${productName}-${version}-portable-${arch}.${ext}
 
 mac:
   target:
     - dmg
   category: public.app-category.photography
+  artifactName: ${productName}-${version}-${arch}.${ext}
 
 linux:
   target:
@@ -38,3 +42,4 @@ linux:
     - deb
   category: Graphics
   maintainer: EditAWr contributors
+  artifactName: ${productName}-${version}-${arch}.${ext}

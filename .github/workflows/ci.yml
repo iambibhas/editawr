@@ -3,7 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
+  workflow_dispatch:
 
 jobs:
   unit-tests:
@@ -24,3 +26,58 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+
+  package:
+    name: Package (${{ matrix.name }})
+    # Unit tests run for every push/PR. Installers are only built for release
+    # tags or an explicit manual run, so PRs stay fast.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: unit-tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+            args: --win --x64
+            artifacts: |
+              dist/*.exe
+              dist/*.blockmap
+          - name: linux-x64
+            os: ubuntu-latest
+            args: --linux --x64
+            artifacts: |
+              dist/*.AppImage
+              dist/*.deb
+          - name: macos
+            # Build on the runner's native architecture. Do not force --arm64
+            # on an Intel runner: sharp's native binary must match the host.
+            os: macos-latest
+            args: --mac
+            artifacts: dist/*.dmg
+    env:
+      # Unsigned CI builds by default. Configure signing secrets and remove
+      # this line when producing release-signed installers.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fakeroot libopenjp2-tools
+      - run: npm ci
+      - run: node scripts/vendor.js
+      - run: npx electron-builder ${{ matrix.args }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: editawr-${{ matrix.name }}
+          path: ${{ matrix.artifacts }}
+          if-no-files-found: error
+          retention-days: 14

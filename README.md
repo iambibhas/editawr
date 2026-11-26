@@ -271,14 +271,15 @@ Unit tests that need real camera files are skipped unless the environment variab
 
 ## Packaging
 
-`electron-builder.yml` is included:
+Installers are built with electron-builder. See **[docs/BUILDING.md](docs/BUILDING.md)** for per-platform requirements, native-module notes, signing/notarization, CI artifacts and troubleshooting.
 
 ```bash
-npm run pack        # unpacked app in dist/win-unpacked (verified)
-npm run dist        # installer/portable build
+npm ci
+npm run pack        # unpacked app for the current OS
+npm run dist        # installer(s) for the current OS
 ```
 
-`src/renderer/vendor/libraw` and sharp's prebuilt native binaries are included automatically (sharp's binaries are unpacked from the asar). The packaged build was smoke-tested with the same NEF/RAW fixtures as the dev build.
+GitHub Actions packages Windows x64, Linux x64 and macOS on `v*` tags or a manual workflow run. Because `sharp` uses host-specific native binaries, each platform should be built on its own OS.
 
 ## Known limitations / roadmap
 
