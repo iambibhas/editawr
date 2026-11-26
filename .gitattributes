@@ -1,0 +1,12 @@
+# Normalise source line endings; keep binaries untouched.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.wasm binary
+*.zip binary
+*.exe binary

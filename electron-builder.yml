@@ -1,0 +1,40 @@
+appId: com.editawr.app
+productName: EditAWr
+copyright: Copyright © 2026 EditAWr contributors
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - src/**/*
+  - package.json
+  - "!**/*.map"
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,readme.md,LICENSE,license}"
+
+asarUnpack:
+  - node_modules/sharp/**/*
+  - node_modules/@img/**/*
+
+win:
+  target:
+    - nsis
+    - portable
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.photography
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Graphics
+  maintainer: EditAWr contributors

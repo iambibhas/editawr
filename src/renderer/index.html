@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' photo: thumb: data: blob:; connect-src 'self' photo: thumb: data: blob:; worker-src 'self' blob:; font-src 'self';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EditAWr</title>
+    <link rel="stylesheet" href="./css/app.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header id="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 2v10h14V7H5Zm2.5 8 2.7-4 1.9 2.6L13.6 11l3 4H7.5Z" fill="currentColor"/></svg>
+          </span>
+          <span class="brand-name">Edit<span>AWr</span></span>
+        </div>
+
+        <div class="topbar-lib" id="topbar-lib">
+          <span class="lib-dot"></span>
+          <span id="lib-name">No library open</span>
+          <span id="lib-count" class="muted"></span>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="btn ghost" id="btn-import" title="Import from SD card (Ctrl+Shift+I)">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 3v10m0 0 4-4m-4 4-4-4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Import
+          </button>
+          <button class="btn ghost" id="btn-rescan" title="Rescan library (F5)">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Rescan
+          </button>
+          <button class="btn ghost icon-only" id="btn-settings" title="Settings">
+            <svg viewBox="0 0 24 24" width="17" height="17"><path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7Zm8-3.5c0-.5 0-1-.1-1.4l2-1.5-2-3.4-2.3.9a8 8 0 0 0-2.4-1.4L14.8 2h-4l-.4 2.2a8 8 0 0 0-2.4 1.4l-2.3-.9-2 3.4 2 1.5a8.7 8.7 0 0 0 0 2.8l-2 1.5 2 3.4 2.3-.9a8 8 0 0 0 2.4 1.4l.4 2.2h4l.4-2.2a8 8 0 0 0 2.4-1.4l2.3.9 2-3.4-2-1.5c.1-.4.1-.9.1-1.4Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <div id="body">
+        <aside id="sidebar">
+          <section class="side-section">
+            <div class="side-head">
+              <h3>Devices</h3>
+              <button class="icon-btn" id="btn-drives-refresh" title="Refresh devices">⟳</button>
+            </div>
+            <div id="devices" class="device-list"></div>
+          </section>
+
+          <section class="side-section">
+            <div class="side-head">
+              <h3>Library</h3>
+            </div>
+            <div id="library-info" class="side-card"></div>
+          </section>
+
+          <section class="side-section folders-section">
+            <div class="side-head">
+              <h3>Folders</h3>
+              <button class="icon-btn" id="btn-folders-refresh" title="Refresh folder list">⟳</button>
+            </div>
+            <div id="folder-tree" class="folder-tree"></div>
+          </section>
+
+          <section class="side-section">
+            <div class="side-head"><h3>Filter</h3></div>
+            <div class="filter-group">
+              <div class="filter-row" id="flag-filters">
+                <button class="chip" data-flag="all">All</button>
+                <button class="chip" data-flag="picked">Picks</button>
+                <button class="chip" data-flag="rejected">Rejects</button>
+              </div>
+              <div class="filter-row" id="rating-filters">
+                <button class="chip" data-rating="0">★ 0+</button>
+                <button class="chip" data-rating="1">★ 1+</button>
+                <button class="chip" data-rating="3">★ 3+</button>
+                <button class="chip" data-rating="5">★ 5</button>
+              </div>
+              <div class="filter-row" id="raw-filters">
+                <button class="chip" data-raw="all">All</button>
+                <button class="chip" data-raw="raw">RAW</button>
+                <button class="chip" data-raw="edited">Edited</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="side-section side-footer">
+            <div class="cache-line" id="cache-line"></div>
+          </section>
+        </aside>
+
+        <main id="library-view">
+          <div id="library-toolbar">
+            <div class="search-wrap">
+              <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <input id="search" type="search" placeholder="Search filename, camera, lens…" autocomplete="off" />
+            </div>
+            <div class="toolbar-spacer"></div>
+            <label class="inline-field">
+              Sort
+              <select id="sort">
+                <option value="date-desc">Newest first</option>
+                <option value="date-asc">Oldest first</option>
+                <option value="name-asc">Filename A–Z</option>
+                <option value="rating-desc">Rating</option>
+              </select>
+            </label>
+            <label class="inline-field range-field" title="Thumbnail size">
+              <input id="thumb-size" type="range" min="120" max="320" step="10" value="190" />
+            </label>
+            <div class="count-pill" id="photo-count">0 photos</div>
+          </div>
+
+          <div id="folder-bar">
+            <button class="icon-btn" id="folder-up" title="Up one folder (Alt+↑)">↑</button>
+            <div class="crumbs" id="crumbs"></div>
+            <span class="toolbar-spacer"></span>
+            <span id="thumb-status" class="status-pill" hidden>
+              <span class="mini-spinner"></span>
+              <span id="thumb-status-text"></span>
+            </span>
+            <label class="check" id="folder-recursive-wrap"><input type="checkbox" id="folder-recursive" /> Include subfolders</label>
+          </div>
+
+          <div id="grid-scroll">
+            <div id="grid" class="grid" role="listbox" aria-label="Photos"></div>
+            <div id="empty-state" class="empty-state" hidden></div>
+          </div>
+
+          <div id="scan-strip" class="scan-strip" hidden>
+            <div class="scan-bar"><div class="scan-fill" id="scan-fill"></div></div>
+            <span id="scan-text">Scanning…</span>
+            <span class="scan-spacer"></span>
+            <button class="btn ghost" id="scan-fast" title="Stop, enable fast metadata indexing and rescan">Speed up</button>
+            <button class="btn ghost" id="scan-stop">Stop</button>
+          </div>
+        </main>
+      </div>
+
+      <section id="editor-view" hidden>
+        <div id="editor-top">
+          <button class="btn ghost" id="btn-back">← Library</button>
+          <div class="editor-title">
+            <strong id="ed-filename">—</strong>
+            <span id="ed-meta" class="muted"></span>
+          </div>
+          <div class="editor-tools">
+            <div class="rating" id="ed-rating" title="Rating (0–5)">
+              <button data-star="1">★</button><button data-star="2">★</button><button data-star="3">★</button><button data-star="4">★</button><button data-star="5">★</button>
+            </div>
+            <button class="icon-btn" id="ed-flag" title="Pick / reject (P / X)">⚑</button>
+            <span class="tool-sep"></span>
+            <button class="icon-btn" id="ed-rot-left" title="Rotate left">⟲</button>
+            <button class="icon-btn" id="ed-rot-right" title="Rotate right">⟳</button>
+            <button class="btn ghost" id="ed-before" title="Before / after (\)">Before</button>
+            <span class="tool-sep"></span>
+            <button class="btn ghost" id="ed-reset" title="Reset all edits">Reset</button>
+            <button class="btn primary" id="ed-export" title="Export (Ctrl+E)">Export…</button>
+          </div>
+        </div>
+
+        <div id="editor-body">
+          <div id="canvas-wrap">
+            <canvas id="editor-canvas"></canvas>
+            <div id="crop-overlay" hidden></div>
+            <div id="crop-hud" hidden>
+              <span>Crop</span>
+              <button class="btn ghost" id="crop-reset">Reset</button>
+              <button class="btn ghost" id="crop-cancel-top">Cancel</button>
+              <button class="btn primary" id="crop-apply-top">Apply</button>
+            </div>
+            <div id="canvas-hud">
+              <span id="mode-badge" class="badge" hidden></span>
+              <span id="zoom-label" class="hud-pill">Fit</span>
+              <div class="hud-zoom">
+                <button id="zoom-out" title="Zoom out">−</button>
+                <button id="zoom-fit" title="Fit (Ctrl+0)">Fit</button>
+                <button id="zoom-100" title="100% (Ctrl+1)">100%</button>
+                <button id="zoom-in" title="Zoom in">+</button>
+              </div>
+            </div>
+            <div id="loading-overlay" class="loading-overlay"><div class="spinner"></div><span id="loading-text">Decoding…</span></div>
+          </div>
+
+          <aside id="panel">
+            <div class="histogram-wrap">
+              <canvas id="histogram" width="280" height="110"></canvas>
+              <div class="hist-readout" id="hist-readout"></div>
+            </div>
+
+            <section class="panel-section" data-section="light">
+              <button class="section-head">Light <span class="chev">▾</span></button>
+              <div class="section-body" id="group-light"></div>
+            </section>
+            <section class="panel-section" data-section="color">
+              <button class="section-head">Color <span class="chev">▾</span></button>
+              <div class="section-body" id="group-color"></div>
+            </section>
+            <section class="panel-section" data-section="detail">
+              <button class="section-head">Detail <span class="chev">▾</span></button>
+              <div class="section-body" id="group-detail"></div>
+            </section>
+            <section class="panel-section" data-section="effects">
+              <button class="section-head">Effects <span class="chev">▾</span></button>
+              <div class="section-body" id="group-effects"></div>
+            </section>
+            <section class="panel-section" data-section="crop">
+              <button class="section-head">Crop &amp; Rotate <span class="chev">▾</span></button>
+              <div class="section-body" id="group-crop"></div>
+            </section>
+            <section class="panel-section" data-section="presets">
+              <button class="section-head">Presets <span class="chev">▾</span></button>
+              <div class="section-body" id="group-presets"></div>
+            </section>
+          </aside>
+        </div>
+
+        <div id="filmstrip-wrap">
+          <div id="filmstrip"></div>
+        </div>
+      </section>
+
+      <section id="import-view" hidden>
+        <div class="import-head">
+          <div>
+            <h2>Import photos</h2>
+            <p class="muted">Copy from a card or folder into your library using a path template.</p>
+          </div>
+          <button class="btn ghost" id="import-close">Close</button>
+        </div>
+        <div class="import-grid">
+          <div class="import-panel">
+            <h3>1 · Source</h3>
+            <div id="import-sources" class="source-list"></div>
+            <div class="import-row">
+              <button class="btn ghost" id="import-pick-folder">Choose folder…</button>
+              <span id="import-source-label" class="muted"></span>
+            </div>
+
+            <h3>2 · Destination</h3>
+            <div class="import-row">
+              <button class="btn ghost" id="import-pick-dest">Choose library folder…</button>
+              <span id="import-dest-label" class="muted"></span>
+            </div>
+
+            <h3>3 · Folder template</h3>
+            <input id="import-template" class="text-input mono" spellcheck="false" value="&lt;date&gt;/&lt;filename&gt;" />
+            <div class="token-hints">
+              <code>&lt;date&gt;</code> <code>&lt;filename&gt;</code> <code>&lt;ext&gt;</code> <code>&lt;camera&gt;</code> <code>&lt;folder&gt;</code> <code>&lt;seq:4&gt;</code> <code>&lt;iso&gt;</code> <code>&lt;aperture&gt;</code>
+            </div>
+            <div class="import-row date-format-row">
+              <label class="inline-field">
+                Date folder
+                <select id="import-date-format"></select>
+              </label>
+              <input id="import-date-custom" class="text-input mono" placeholder="YYYY-MM-DD" spellcheck="false" hidden />
+              <span id="import-date-hint" class="muted" style="font-size:10.5px"></span>
+            </div>
+            <div class="hint" style="font-size:10.5px;color:var(--text-3);margin-top:4px">
+              Tokens: <span class="mono">YYYY YY MM DD HH mm ss</span> · <span class="mono">/</span> creates folders · inline override: <span class="mono">&lt;date:YYYY/MM/DD&gt;</span>
+            </div>
+            <div id="import-samples" class="samples"></div>
+
+            <div class="import-row">
+              <label class="inline-field">
+                If file exists
+                <select id="import-dup">
+                  <option value="rename">Keep both (rename)</option>
+                  <option value="skip">Skip</option>
+                  <option value="overwrite">Overwrite</option>
+                </select>
+              </label>
+              <label class="check"><input type="checkbox" id="import-verify" /> Verify checksums</label>
+              <label class="check"><input type="checkbox" id="import-subdirs" checked /> Include subfolders</label>
+            </div>
+          </div>
+
+          <div class="import-panel import-preview">
+            <h3>4 · Review</h3>
+            <div id="import-summary" class="import-summary muted">Choose a source to see files.</div>
+            <div id="import-files" class="import-files"></div>
+          </div>
+        </div>
+        <div class="import-foot">
+          <div class="import-progress">
+            <div class="bar"><div class="fill" id="import-fill"></div></div>
+            <span id="import-status" class="muted"></span>
+          </div>
+          <div class="import-actions">
+            <button class="btn ghost" id="import-cancel" hidden>Cancel</button>
+            <button class="btn primary" id="import-start" disabled>Import photos</button>
+          </div>
+        </div>
+      </section>
+
+      <div id="toasts"></div>
+      <div id="modal-root"></div>
+    </div>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
