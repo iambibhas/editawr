@@ -22,6 +22,19 @@ test('metadata: falls back to file mtime when there is no EXIF', async () => {
   fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 60 });
 });
 
+test('metadata: mtime fallback rounds sub-millisecond values', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'editawr-meta-'));
+  const file = path.join(dir, 'plain.bin');
+  fs.writeFileSync(file, 'not an image');
+  const st = fs.statSync(file);
+  const meta = await readMetadata(file, {
+    stat: { ...st, mtimeMs: 1795688915272.232 },
+  });
+  assert.equal(meta.dateSource, 'mtime');
+  assert.equal(meta.capturedEpoch, 1795688915272);
+  fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 60 });
+});
+
 test('metadata: real NEF (fixture)', { skip: !process.env.EDITAWR_TEST_NEF }, async () => {
   const file = process.env.EDITAWR_TEST_NEF;
   if (!fs.existsSync(file)) return;

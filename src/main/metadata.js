@@ -100,13 +100,16 @@ function cleanString(v) {
  */
 async function readMetadata(file, { stat } = {}) {
   const st = stat || (await require('node:fs/promises').stat(file));
+  // Node reports sub-millisecond mtimes on some filesystems (notably Linux);
+  // capturedEpoch is consumed as an integer-millisecond timestamp.
+  const mtimeMs = Math.round(st.mtimeMs);
   const result = {
     width: null,
     height: null,
     orientation: 1,
     capturedAt: null,
     capturedOffset: null,
-    capturedEpoch: st.mtimeMs,
+    capturedEpoch: mtimeMs,
     camera: null,
     cameraMake: null,
     lens: null,
@@ -195,8 +198,8 @@ async function readMetadata(file, { stat } = {}) {
   }
 
   if (!result.capturedAt) {
-    result.capturedAt = parseWallFromEpoch(st.mtimeMs);
-    result.capturedEpoch = st.mtimeMs;
+    result.capturedAt = parseWallFromEpoch(mtimeMs);
+    result.capturedEpoch = mtimeMs;
     result.dateSource = 'mtime';
   }
 
