@@ -63,6 +63,38 @@ npm start            # or: npm run dev   (opens DevTools)
 
 First run: choose a library folder (or create an empty one), then import from a card or folder. Existing photos in the chosen folder are catalogued in place.
 
+### Install (Linux and macOS)
+
+From a checkout:
+
+```bash
+./install.sh
+```
+
+On Linux it downloads the latest AppImage release and installs it under `~/.local`. On macOS there are **no prebuilt release artifacts**; the script builds from source, ad-hoc signs the app, and installs it to `~/Applications`. Node.js 22.12+ is required on macOS.
+
+```bash
+./install.sh --help
+```
+
+### macOS: “EditAWr is damaged”
+
+New macOS releases are source-only. If you installed an older, unsigned DMG, macOS may report it as damaged because it was never notarized. Clear the quarantine flag:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/EditAWr.app
+open /Applications/EditAWr.app
+```
+
+If it still refuses, ad-hoc sign the local copy:
+
+```bash
+sudo codesign --force --deep --sign - /Applications/EditAWr.app
+xattr -dr com.apple.quarantine /Applications/EditAWr.app
+```
+
+A proper Developer ID signature plus Apple notarization is the only way to avoid this for downloaded builds; see [docs/BUILDING.md](docs/BUILDING.md#code-signing).
+
 ## Import templates
 
 Tokens are case-insensitive. `<date>` expands to **`YYYY-MM-DD`** by default, so `<date>/<filename>` produces `2026-08-19/BCD_1030.NEF`. The date format is configurable (see below).
@@ -279,7 +311,7 @@ npm run pack        # unpacked app for the current OS
 npm run dist        # installer(s) for the current OS
 ```
 
-GitHub Actions packages Windows x64, Linux x64, and macOS Intel/Apple Silicon on `v*` tags or a manual workflow run. Tag builds attach the installers to the matching GitHub Release. Because `sharp` uses host-specific native binaries, each platform should be built on its own OS.
+GitHub Actions packages Windows x64 and Linux x64 on `v*` tags or a manual workflow run. Tag builds use the tag (without `v`) as the app/artifact version and attach the installers to the matching GitHub Release. macOS is built locally with `./install.sh` or `npm run pack`; no macOS binaries are published.
 
 ## Known limitations / roadmap
 

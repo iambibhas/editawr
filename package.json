@@ -1,6 +1,6 @@
 {
   "name": "editawr",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "EditAWr \u00e2\u20ac\u201d RAW-first photo organizer and editor (SD import, NEF, GPU denoise, sharpening)",
   "main": "src/main/main.js",
   "private": true,

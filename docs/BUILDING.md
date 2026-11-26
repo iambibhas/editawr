@@ -10,8 +10,12 @@ OS signing rules mean each installer should be built on its target OS.
 |---|---|---|---|
 | Windows | x64 | NSIS installer + portable `.exe` | Windows |
 | Windows | arm64 | NSIS installer + portable `.exe` | Windows arm64 |
-| macOS | x64 or arm64 | `.dmg` | macOS of the same architecture |
+| macOS | x64 or arm64 | Local `.app` / optional `.dmg` | macOS of the same architecture (no CI artifact) |
 | Linux | x64 or arm64 | `.AppImage` + `.deb` | Linux of the same architecture |
+
+CI publishes **Windows and Linux** artifacts. macOS is built locally from
+source with `install.sh` or the electron-builder commands below; there are no
+prebuilt macOS releases.
 
 `macOS` packages **must** be produced on macOS: DMG creation, code signing and
 notarization need Apple tooling. Do not try to build a macOS DMG on Windows or
@@ -20,7 +24,7 @@ Linux.
 Cross-building Windows installers on Linux is possible with Wine, and some
 Linux targets can be produced in containers, but neither is recommended here
 because `sharp` embeds a host-specific native binary. The CI workflow builds
-each platform on its native runner.
+Windows and Linux on their native runners.
 
 ## Prerequisites
 
@@ -213,7 +217,7 @@ Optional Windows installer art: `build/installerIcon.ico` and
 
 ## Code signing
 
-The CI workflow builds **unsigned** packages by default. Release builds should
+CI builds **unsigned Windows and Linux** packages by default. Release builds should
 be signed.
 
 ### Windows
@@ -320,9 +324,9 @@ sudo apt-get -f install
 
 1. **Unit tests** — Ubuntu and Windows, on every push to `main`, every PR,
    and every release tag.
-2. **Package** — Windows x64, Linux x64, macOS arm64 and macOS x64, after the
-   unit tests pass. Packaging runs only for `v*` tags and manual workflow runs.
-   Pushes to `main` and pull requests run the unit tests only.
+2. **Package** — Windows x64 and Linux x64, after the unit tests pass.
+   Packaging runs only for `v*` tags and manual workflow runs. Pushes to
+   `main` and pull requests run the unit tests only.
 
 The package job:
 
@@ -344,13 +348,12 @@ Main pushes and pull requests intentionally skip packaging to save runner
 minutes.
 
 Download the result from the workflow run's **Artifacts** section:
-`editawr-windows-x64`, `editawr-linux-x64`, `editawr-macos-arm64` and
-`editawr-macos-x64`.
+`editawr-windows-x64` and `editawr-linux-x64`.
 
 ### GitHub Releases
 
 For a `v*` tag, the `release` job runs after all package jobs, downloads the
-four artifact bundles, and attaches the installers to the GitHub Release for
+two artifact bundles, and attaches the installers to the GitHub Release for
 that tag. If the release already exists, assets are added to it; if it does not,
 the job creates the release with generated notes.
 
@@ -366,33 +369,48 @@ Or use the GitHub UI: **Releases → the release → Edit → Attach binaries**.
 
 ### Adding signing to CI
 
-Repository secrets:
+CI currently publishes only Windows and Linux, and those builds are unsigned by
+default. For Windows, set `CSC_LINK` and `CSC_KEY_PASSWORD` as repository
+secrets and pass them to the electron-builder step.
 
-- Windows: `CSC_LINK`, `CSC_KEY_PASSWORD`
-- macOS: `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`,
-  `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` (or the API-key equivalents)
-
-Then:
-
-1. Remove `CSC_IDENTITY_AUTO_DISCOVERY: 'false'` from the package job.
-2. Add the secrets as environment variables on the electron-builder step.
-3. Enable `mac.notarize` and hardened runtime for macOS.
+macOS signing/notarization is handled in local builds; see **Code signing**
+above. If macOS CI is re-added later, configure `CSC_LINK`,
+`CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`,
+`APPLE_TEAM_ID` (or the API-key equivalents), enable `mac.notarize` and
+hardened runtime, and remove `CSC_IDENTITY_AUTO_DISCOVERY=false`.
 
 Keep signing secrets out of pull-request workflows. The package and release
 jobs never run on pull requests, which is the safer pattern.
 
-### macOS architectures
+### macOS builds
 
-The workflow builds both:
+There are no macOS artifacts in CI or on new Releases. Build locally on a Mac:
 
-- `macos-arm64` on `macos-latest` (Apple Silicon), with `--mac --arm64`
-- `macos-x64` on `macos-26-intel` (Intel), with `--mac --x64`
+```bash
+npm ci
+npm run pack
+```
 
-If the Intel label changes, `macos-15-intel` is the fallback. Do not force
-`--arm64` on an x64 runner: electron-builder will package the arm64 Electron
-binary, but `sharp` will still be the x64 native module installed by `npm ci`.
-Build on the matching architecture, or install the target architecture's
-`@img/sharp-*` package explicitly.
+On Apple Silicon, ad-hoc sign the local app before launching:
+
+```bash
+codesign --force --deep --sign - dist/mac-arm64/EditAWr.app
+open dist/mac-arm64/EditAWr.app
+```
+
+Do not force `--arm64` on an x64 Mac: electron-builder will package the arm64
+Electron binary, but `sharp` will still be the x64 native module installed by
+`npm ci`. Build on the matching architecture.
+
+The repository's `install.sh` automates the local macOS build, ad-hoc signing,
+and installation to `~/Applications` (or `/Applications` with `--system`).
+
+Older releases may still have `.dmg` assets. Delete them from the release page
+with the GitHub UI or:
+
+```bash
+gh release delete-asset <tag> <asset-name> --yes
+```
 
 ### Adding another architecture
 
@@ -420,7 +438,7 @@ Before publishing a build:
 6. Export a JPEG and a full-resolution file.
 7. Check `app.asar.unpacked` contains the correct `@img/sharp-*` binary.
 8. Check `app.asar` contains `src/renderer/vendor/libraw`.
-9. On macOS, test on both Intel and Apple Silicon if you ship a universal app.
+9. On macOS, test the local build on the architecture you are using.
 10. On Linux, test both the AppImage and the deb on a clean VM/container.
 
 ## Troubleshooting
@@ -429,7 +447,7 @@ Before publishing a build:
 |---|---|---|
 | `Could not load the "sharp" module` / wrong ELF or Mach-O | Package was cross-built; wrong `@img` binary | Build on the target OS/arch, or install the matching `@img/sharp-*` package |
 | LibRaw/WASM 404 in the packaged app | Vendor step not run; vendor dir deleted | Run `node scripts/vendor.js` before `electron-builder` |
-| macOS: “app is damaged” | Unsigned/quarantined build | Right-click Open, or `xattr -dr com.apple.quarantine` |
+| macOS: “app is damaged” | Unsigned, not notarized, or quarantined build | `xattr -dr com.apple.quarantine /Applications/EditAWr.app`; if still blocked, ad-hoc sign with `codesign --force --deep --sign -`; real fix is Developer ID + notarization |
 | macOS notarization fails | Missing credentials, hardened runtime or entitlement | Check Apple ID/API key, `mac.notarize`, and codesign output |
 | Windows SmartScreen warning | Installer is unsigned | Sign with an Authenticode certificate |
 | Linux AppImage will not start | FUSE missing | Install FUSE 2, or run `./EditAWr-*.AppImage --appimage-extract-and-run` |
@@ -441,23 +459,34 @@ Before publishing a build:
 
 ## Release checklist
 
+Tag builds inherit their version from the tag. Pushing `v0.1.3` produces
+`EditAWr-0.1.3-*` even if `package.json` still says `0.1.2`: CI writes the tag
+version into `package.json` inside the runner before electron-builder runs.
+
+For local builds, where there is no release tag, update the version yourself:
+
 ```bash
-# 1. Update the version (creates a commit and tag unless --no-git-tag-version)
+# Creates a commit and tag as well
 npm version patch
 
-# 2. Push the commit and tag
 git push origin main
 git push origin --tags
+```
+
+Or update the version without creating a tag/commit:
+
+```bash
+npm version patch --no-git-tag-version
 ```
 
 Or create the tag manually:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
-The tag triggers the packaging job. Review the artifacts, sign them if the
-release requires it, then publish them with your normal release process. The
-repository does not currently configure `electron-updater` or automatic GitHub
-Releases; add those only after signing is in place.
+The tag triggers the package jobs, and the release job attaches the installers
+to the matching GitHub Release. Review them, sign them if the release requires
+it, then publish. The repository does not configure `electron-updater`; add it
+only after signing is in place.

@@ -19,8 +19,8 @@ jobs:
       # Unit tests do not launch Electron; skip its 100 MB binary download.
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -30,7 +30,7 @@ jobs:
   package:
     name: Package (${{ matrix.name }})
     # Installers are only built for release tags or explicit manual runs.
-    # Main pushes and PRs only run unit tests, saving macOS/Windows runner time.
+    # Main pushes and PRs only run unit tests, saving release-runner time.
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: unit-tests
     runs-on: ${{ matrix.os }}
@@ -51,24 +51,9 @@ jobs:
             artifacts: |
               dist/*.AppImage
               dist/*.deb
-          - name: macos-arm64
-            # Apple Silicon runner; sharp installs the arm64 native binary.
-            os: macos-latest
-            args: --mac --arm64
-            artifacts: dist/*.dmg
-          - name: macos-x64
-            # Intel runner; sharp installs the x64 native binary.
-            # macOS 15 Intel is also available as macos-15-intel.
-            os: macos-26-intel
-            args: --mac --x64
-            artifacts: dist/*.dmg
-    env:
-      # Unsigned CI builds by default. Configure signing secrets and remove
-      # this line when producing release-signed installers.
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -79,8 +64,16 @@ jobs:
           sudo apt-get install -y --no-install-recommends fakeroot libopenjp2-tools
       - run: npm ci
       - run: node scripts/vendor.js
+      - name: Use release tag as app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "Using tag version: $version"
+          npm pkg set version="$version"
+          node -p "require('./package.json').version"
       - run: npx electron-builder ${{ matrix.args }} --publish never
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: editawr-${{ matrix.name }}
           path: ${{ matrix.artifacts }}
@@ -97,10 +90,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: editawr-*
           merge-multiple: true
