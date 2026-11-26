@@ -29,9 +29,9 @@ jobs:
 
   package:
     name: Package (${{ matrix.name }})
-    # Build installers on pushes to main, release tags and manual runs.
-    # Pull requests only run the unit tests so they stay fast.
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # Installers are only built for release tags or explicit manual runs.
+    # Main pushes and PRs only run unit tests, saving macOS/Windows runner time.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: unit-tests
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
