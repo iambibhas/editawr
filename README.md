@@ -279,7 +279,7 @@ npm run pack        # unpacked app for the current OS
 npm run dist        # installer(s) for the current OS
 ```
 
-GitHub Actions packages Windows x64, Linux x64 and macOS on `v*` tags or a manual workflow run. Because `sharp` uses host-specific native binaries, each platform should be built on its own OS.
+GitHub Actions packages Windows x64, Linux x64 and macOS on pushes to `main`, `v*` tags or a manual workflow run. Because `sharp` uses host-specific native binaries, each platform should be built on its own OS.
 
 ## Known limitations / roadmap
 

@@ -311,8 +311,8 @@ sudo apt-get -f install
 1. **Unit tests** — Ubuntu and Windows, on every push to `main`, every PR,
    and every release tag.
 2. **Package** — Windows x64, Linux x64 and macOS, after the unit tests pass.
-   Packaging only runs for `v*` tags or a manual workflow run, so pull requests
-   stay fast.
+   Packaging runs on pushes to `main`, `v*` tags, and manual workflow runs.
+   Pull requests only run the unit tests, so they stay fast.
 
 The package job:
 
@@ -323,12 +323,19 @@ The package job:
 
 Trigger a release build manually:
 
-1. Open **Actions → CI → Run workflow** on the branch you want to build.
-2. Or push a version tag:
+1. Push to `main` (the packaging job runs after the unit tests).
+2. Open **Actions → CI → Run workflow** on the branch you want to build.
+3. Or push a version tag:
    ```bash
    git tag v0.1.0
    git push origin v0.1.0
    ```
+
+If you only want installers for releases, change the package job condition to:
+
+```yaml
+if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+```
 
 Download the result from the workflow run's **Artifacts** section:
 `editawr-windows-x64`, `editawr-linux-x64`, `editawr-macos`.
