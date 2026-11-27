@@ -71,11 +71,43 @@ From a checkout:
 ./install.sh
 ```
 
-On Linux it downloads the latest AppImage release and installs it under `~/.local`. On macOS there are **no prebuilt release artifacts**; the script builds from source, ad-hoc signs the app, and installs it to `~/Applications`. Node.js 22.12+ is required on macOS.
+Or, once a release includes the installer asset:
 
 ```bash
-./install.sh --help
+curl -fsSL https://github.com/iambibhas/editawr/releases/latest/download/install.sh | bash
 ```
+
+That runs the script directly from the latest GitHub Release. Prefer to read it first:
+
+```bash
+curl -fsSL https://github.com/iambibhas/editawr/releases/latest/download/install.sh -o install.sh
+less install.sh
+bash install.sh
+```
+
+Pass installer options after `bash -s --`:
+
+```bash
+curl -fsSL https://github.com/iambibhas/editawr/releases/latest/download/install.sh | bash -s -- --version 0.1.3
+curl -fsSL https://github.com/iambibhas/editawr/releases/latest/download/install.sh | bash -s -- --uninstall
+```
+
+On Linux it downloads the latest AppImage release and installs it under `~/.local`. On macOS there are **no prebuilt release artifacts**; the script builds from source, ad-hoc signs the app, and installs it to `~/Applications`. Node.js 22.12+ is required on macOS.
+
+For `--system` on macOS, download the script first so `sudo` can prompt normally:
+
+```bash
+curl -fsSL https://github.com/iambibhas/editawr/releases/latest/download/install.sh -o install.sh
+bash install.sh --system
+```
+
+The latest release (v0.1.2 at the time of writing) predates the installer asset. Until a new release is published, use the checkout command above or:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/iambibhas/editawr/main/install.sh | bash
+```
+
+Only run scripts you trust. `curl | bash` executes whatever GitHub serves; the pinned release asset is more reproducible than the `main` branch.
 
 ### macOS: “EditAWr is damaged”
 

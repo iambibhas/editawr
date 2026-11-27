@@ -354,8 +354,16 @@ Download the result from the workflow run's **Artifacts** section:
 
 For a `v*` tag, the `release` job runs after all package jobs, downloads the
 two artifact bundles, and attaches the installers to the GitHub Release for
-that tag. If the release already exists, assets are added to it; if it does not,
-the job creates the release with generated notes.
+that tag. It also attaches `install.sh`, which enables:
+
+```bash
+curl -fsSL https://github.com/iambibhas/editawr/releases/latest/download/install.sh | bash
+```
+
+If the release already exists, assets are added to it; if it does not, the job
+creates the release with generated notes. Releases created before the installer
+asset existed (for example v0.1.2) need `install.sh` uploaded manually, or can
+use `raw.githubusercontent.com/.../main/install.sh` instead.
 
 This does not run for a release created before the job existed, and re-running
 an old workflow run uses the old workflow file. In that case, download the

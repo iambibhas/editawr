@@ -28,6 +28,15 @@ SYSTEM=0
 VERSION=""
 UNINSTALL=0
 WORK_DIR=""
+SCRIPT_DIR=""
+
+# Determine the checkout directory only when this file was run from disk.
+# When piped through bash, $0 is just "bash"; never treat the caller's CWD as
+# the EditAWr checkout in that case.
+case "$0" in
+  */*) SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)" ;;
+  install.sh) SCRIPT_DIR="$(pwd)" ;;
+esac
 
 log() { printf '==> %s\n' "$*"; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
@@ -221,8 +230,8 @@ install_macos() {
   fi
 
   local src tag
-  if [ -f "package.json" ] && [ -d "src" ] && [ -f "scripts/vendor.js" ]; then
-    src="$(pwd)"
+  if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/package.json" ] && [ -d "$SCRIPT_DIR/src" ] && [ -f "$SCRIPT_DIR/scripts/vendor.js" ]; then
+    src="$SCRIPT_DIR"
     tag="${VERSION:-local checkout}"
     log "Building from the current checkout"
   else

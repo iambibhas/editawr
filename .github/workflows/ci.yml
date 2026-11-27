@@ -98,6 +98,8 @@ jobs:
           pattern: editawr-*
           merge-multiple: true
           path: release-assets
+      - name: Include installer script
+        run: cp install.sh release-assets/install.sh
       - name: Attach installers
         env:
           GH_TOKEN: ${{ github.token }}
